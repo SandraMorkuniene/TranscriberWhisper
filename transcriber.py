@@ -5,11 +5,10 @@ from docx import Document
 
 st.set_page_config(page_title="Transkribuotojas (.m4a/.mp3/.wav)")
 
-st.title("Lietuvių kalbos transkribuotojas su Word parsisiuntimu")
+st.title("Lietuvių kalbos transkribuotojas")
 
 st.markdown("""
-Įkelkite garso įrašą (.m4a, .mp3 arba .wav). 
-Transkripcija atliekama tiesiai per OpenAI Whisper API, o rezultatas pateikiamas Word dokumente.
+Įkelkite garso įrašą (.m4a, .mp3 arba .wav) iki 25 MB dydžio.
 """)
 
 # Failo įkėlimas
@@ -49,3 +48,4 @@ if audio_file is not None:
             file_name="transkripcija.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
+
