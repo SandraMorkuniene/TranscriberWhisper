@@ -4,7 +4,6 @@ from openai import OpenAI
 from docx import Document
 from io import BytesIO
 import tempfile
-from pydub import AudioSegment
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
@@ -19,16 +18,20 @@ audio = mic_recorder(
     just_once=False
 )
 
+# ⚠️ Tik jei audio egzistuoja
+if audio is not None:
 
-with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
-    tmp.write(audio["bytes"])
-    tmp_path = tmp.name
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+        tmp.write(audio["bytes"])
+        tmp_path = tmp.name
 
-with open(tmp_path, "rb") as f:
-    transcript = client.audio.transcriptions.create(
-        model="gpt-4o-mini-transcribe",
-        file=f
-    )
+    st.info("Transcribing...")
+
+    with open(tmp_path, "rb") as f:
+        transcript = client.audio.transcriptions.create(
+            model="gpt-4o-mini-transcribe",
+            file=f
+        )
 
     st.session_state["transcript"] += transcript.text + " "
 
@@ -60,7 +63,6 @@ if st.button("Finalize Transcript"):
     )
 
     final_text = response.choices[0].message.content
-
     st.session_state["final_text"] = final_text
 
 if "final_text" in st.session_state:
@@ -80,8 +82,3 @@ if "final_text" in st.session_state:
         buffer,
         file_name="interview.docx"
     )
-
-
-
-
-
