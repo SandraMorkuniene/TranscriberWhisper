@@ -52,7 +52,7 @@ class AudioProcessor(AudioProcessorBase):
             st.session_state["live_transcript"] += transcript + " "
 
 
-client = OpenAI()
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 def transcribe_audio(file_path):
     with open(file_path, "rb") as f:
@@ -68,6 +68,8 @@ st.title("Lithuanian AI Interview Recorder")
 if "live_transcript" not in st.session_state:
     st.session_state["live_transcript"] = ""
 
+st.session_state["live_transcript"] += transcript + " "
+
 webrtc_ctx = webrtc_streamer(
     key="example",
     audio_processor_factory=AudioProcessor,
@@ -77,7 +79,7 @@ webrtc_ctx = webrtc_streamer(
 st.subheader("Live Transcript")
 st.write(st.session_state["live_transcript"])
 
-if webrtc_ctx.state.playing:
+if webrtc_ctx.state.playing and webrtc_ctx.audio_processor:
     elapsed = int(time.time() - webrtc_ctx.audio_processor.start_time)
     st.write(f"Recording time: {elapsed} seconds")
 
@@ -125,6 +127,7 @@ if "final_text" in st.session_state:
             f,
             file_name="interview.docx"
         )
+
 
 
 
