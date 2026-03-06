@@ -28,7 +28,8 @@ if audio:
     with open(tmp_path, "rb") as f:
         transcript = client.audio.transcriptions.create(
             model="gpt-4o-mini-transcribe",
-            file=f      
+            file=f,
+            prompt="Tai lietuviškas interviu tarp žurnalisto ir pašnekovo."
         )
 
     st.session_state["transcript"] += transcript.text + " "
@@ -81,4 +82,5 @@ if "final_text" in st.session_state:
         buffer,
         file_name="interview.docx"
     )
+
 
