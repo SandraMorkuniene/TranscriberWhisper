@@ -57,7 +57,6 @@ client = OpenAI()
 def transcribe_audio(file_path):
     with open(file_path, "rb") as f:
         response = client.audio.transcriptions.create(
-            sound = sound.normalize()
             model="whisper-1",
             file=f,
             language="lt"
@@ -126,4 +125,5 @@ if "final_text" in st.session_state:
             f,
             file_name="interview.docx"
         )
+
 
