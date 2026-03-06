@@ -4,6 +4,7 @@ from openai import OpenAI
 from docx import Document
 from io import BytesIO
 import tempfile
+from pydub import AudioSegment
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
@@ -19,17 +20,21 @@ audio = mic_recorder(
 )
 
 if audio:
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp:
         tmp.write(audio["bytes"])
-        tmp_path = tmp.name
+        webm_path = tmp.name
+
+    # convert WEBM → WAV
+    sound = AudioSegment.from_file(webm_path)
+    wav_path = webm_path.replace(".webm", ".wav")
+    sound.export(wav_path, format="wav")
 
     st.info("Transcribing...")
 
-    with open(tmp_path, "rb") as f:
+    with open(wav_path, "rb") as f:
         transcript = client.audio.transcriptions.create(
             model="gpt-4o-mini-transcribe",
-            file=f,
-            prompt="Tai lietuviškas interviu tarp žurnalisto ir pašnekovo."
+            file=f
         )
 
     st.session_state["transcript"] += transcript.text + " "
@@ -82,5 +87,6 @@ if "final_text" in st.session_state:
         buffer,
         file_name="interview.docx"
     )
+
 
 
