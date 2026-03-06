@@ -18,8 +18,9 @@ audio = mic_recorder(
     just_once=False
 )
 
-# ⚠️ Tik jei audio egzistuoja
-if audio is not None:
+
+if audio:
+    st.audio(audio["bytes"]) 
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
         tmp.write(audio["bytes"])
@@ -82,3 +83,4 @@ if "final_text" in st.session_state:
         buffer,
         file_name="interview.docx"
     )
+
