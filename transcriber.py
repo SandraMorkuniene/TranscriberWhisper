@@ -1,95 +1,48 @@
-from io import BytesIO
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, AudioProcessorBase
-import av
-import numpy as np
-import tempfile
-import os
-from pydub import AudioSegment
+from streamlit_mic_recorder import mic_recorder
 from openai import OpenAI
 from docx import Document
-import time
-
-class AudioProcessor(AudioProcessorBase):
-    def __init__(self):
-        self.frames = []
-        self.start_time = time.time()
-        self.chunk_duration = 30  # seconds
-        self.last_processed = time.time()
-
-    def recv(self, frame: av.AudioFrame):
-        audio = frame.to_ndarray()
-        self.frames.append(audio)
-
-        now = time.time()
-
-        if now - self.last_processed >= self.chunk_duration:
-            self.process_chunk()
-            self.last_processed = now
-
-        return frame
-
-    def process_chunk(self):
-        if len(self.frames) == 0:
-            return
-
-        audio_data = np.concatenate(self.frames, axis=0)
-        self.frames = []
-
-        # Save temp WAV
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
-            sound = AudioSegment(
-                audio_data.tobytes(),
-                frame_rate=48000,
-                sample_width=2,
-                channels=1
-            )
-            sound = sound.set_frame_rate(16000).set_channels(1)
-            sound.export(tmp.name, format="wav")
-
-            transcript = transcribe_audio(tmp.name)
-
-            st.session_state["live_transcript"] += transcript + " "
-
+from io import BytesIO
+import tempfile
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-def transcribe_audio(file_path):
-    with open(file_path, "rb") as f:
-        response = client.audio.transcriptions.create(
+st.title("Lithuanian AI Interview Recorder")
+
+if "transcript" not in st.session_state:
+    st.session_state["transcript"] = ""
+
+audio = mic_recorder(
+    start_prompt="🎙 Start recording",
+    stop_prompt="⏹ Stop recording",
+    just_once=False
+)
+
+if audio:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+        tmp.write(audio["bytes"])
+        tmp_path = tmp.name
+
+    st.info("Transcribing...")
+
+    with open(tmp_path, "rb") as f:
+        transcript = client.audio.transcriptions.create(
             model="gpt-4o-mini-transcribe",
             file=f,
             language="lt"
         )
-    return response.text
 
-st.title("Lithuanian AI Interview Recorder")
+    st.session_state["transcript"] += transcript.text + " "
 
-if "live_transcript" not in st.session_state:
-    st.session_state["live_transcript"] = ""
-
-st.session_state["live_transcript"] += transcript + " "
-
-webrtc_ctx = webrtc_streamer(
-    key="example",
-    audio_processor_factory=AudioProcessor,
-    media_stream_constraints={"audio": True, "video": False},
-)
-
-st.subheader("Live Transcript")
-st.write(st.session_state["live_transcript"])
-
-if webrtc_ctx.state.playing and webrtc_ctx.audio_processor:
-    elapsed = int(time.time() - webrtc_ctx.audio_processor.start_time)
-    st.write(f"Recording time: {elapsed} seconds")
+st.subheader("Transcript")
+st.write(st.session_state["transcript"])
 
 if st.button("Finalize Transcript"):
 
-    raw_text = st.session_state["live_transcript"]
-
     prompt = f"""
     Clean this Lithuanian interview transcript.
-    Fix grammar mistakes.
+
+    Fix grammar.
     Separate speakers as:
 
     INTERVIUOTOJAS:
@@ -100,7 +53,7 @@ if st.button("Finalize Transcript"):
     2. 5 strongest quotes
 
     Transcript:
-    {raw_text}
+    {st.session_state["transcript"]}
     """
 
     response = client.chat.completions.create(
@@ -109,26 +62,23 @@ if st.button("Finalize Transcript"):
     )
 
     final_text = response.choices[0].message.content
+
     st.session_state["final_text"] = final_text
 
-def generate_doc(text):
-    doc = Document()
-    doc.add_paragraph(text)
-    file_path = "interview.docx"
-    doc.save(file_path)
-    return file_path
-
 if "final_text" in st.session_state:
-    file_path = generate_doc(st.session_state["final_text"])
 
-    with open(file_path, "rb") as f:
-        st.download_button(
-            "Download Word File",
-            f,
-            file_name="interview.docx"
-        )
+    st.subheader("Final Interview")
+    st.write(st.session_state["final_text"])
 
+    doc = Document()
+    doc.add_paragraph(st.session_state["final_text"])
 
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
 
-
-
+    st.download_button(
+        "Download Word file",
+        buffer,
+        file_name="interview.docx"
+    )
