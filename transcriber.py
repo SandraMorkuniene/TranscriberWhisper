@@ -33,7 +33,7 @@ class AudioProcessor(AudioProcessorBase):
         if len(self.frames) == 0:
             return
 
-        audio_data = np.concatenate(self.frames, axis=1)
+        audio_data = np.concatenate(self.frames, axis=0)
         self.frames = []
 
         # Save temp WAV
@@ -125,5 +125,6 @@ if "final_text" in st.session_state:
             f,
             file_name="interview.docx"
         )
+
 
 
