@@ -20,17 +20,15 @@ audio = mic_recorder(
 )
 
 
-with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp:
+with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
     tmp.write(audio["bytes"])
-    webm_path = tmp.name
+    tmp_path = tmp.name
 
-
-
-with open(wav_path, "rb") as f:
+with open(tmp_path, "rb") as f:
     transcript = client.audio.transcriptions.create(
         model="gpt-4o-mini-transcribe",
         file=f
-        )
+    )
 
     st.session_state["transcript"] += transcript.text + " "
 
@@ -82,6 +80,7 @@ if "final_text" in st.session_state:
         buffer,
         file_name="interview.docx"
     )
+
 
 
 
