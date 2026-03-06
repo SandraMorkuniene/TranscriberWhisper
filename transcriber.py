@@ -14,7 +14,7 @@ class AudioProcessor(AudioProcessorBase):
     def __init__(self):
         self.frames = []
         self.start_time = time.time()
-        self.chunk_duration = 10  # seconds
+        self.chunk_duration = 30  # seconds
         self.last_processed = time.time()
 
     def recv(self, frame: av.AudioFrame):
@@ -57,7 +57,7 @@ client = OpenAI()
 def transcribe_audio(file_path):
     with open(file_path, "rb") as f:
         response = client.audio.transcriptions.create(
-            model="whisper-1",
+            model="gpt-4o-mini-transcribe",
             file=f,
             language="lt"
         )
@@ -125,6 +125,7 @@ if "final_text" in st.session_state:
             f,
             file_name="interview.docx"
         )
+
 
 
 
