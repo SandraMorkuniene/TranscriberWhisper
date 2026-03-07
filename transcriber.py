@@ -19,22 +19,32 @@ audio = mic_recorder(
 )
 
 
-if audio:
-    st.audio(audio["bytes"]) 
+if audio is not None:
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
-        tmp.write(audio["bytes"])
-        tmp_path = tmp.name
+    audio_bytes = audio["bytes"]
 
-    st.info("Transcribing...")
+    # parodyti audio
+    st.audio(audio_bytes)
 
-    with open(tmp_path, "rb") as f:
-        transcript = client.audio.transcriptions.create(
-            model="gpt-4o-mini-transcribe",
-            file=f
-        )
+    # išsaugoti failą
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp:
+        tmp.write(audio_bytes)
+        audio_path = tmp.name
 
-    st.session_state["transcript"] += transcript.text + " "
+    st.write("📝 Transcribing...")
+
+    try:
+        with open(audio_path, "rb") as f:
+            transcript = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=f
+            )
+
+        text = transcript.text
+        st.session_state["transcript"] += text + " "
+
+    except Exception as e:
+        st.error(e)
 
 st.subheader("Transcript")
 st.write(st.session_state["transcript"])
@@ -83,4 +93,5 @@ if "final_text" in st.session_state:
         buffer,
         file_name="interview.docx"
     )
+
 
